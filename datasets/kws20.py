@@ -72,7 +72,8 @@ class KWS:
                   'happy': 12, 'house': 13, 'learn': 14, 'left': 15, 'marvin': 16, 'nine': 17,
                   'no': 18, 'off': 19, 'on': 20, 'one': 21, 'right': 22, 'seven': 23,
                   'sheila': 24, 'six': 25, 'stop': 26, 'three': 27, 'tree': 28, 'two': 29,
-                  'up': 30, 'visual': 31, 'wow': 32, 'yes': 33, 'zero': 34}
+                  'up': 30, 'visual': 31, 'wow': 32, 'yes': 33, 'zero': 34, 'dash': 35, 'energy': 36, 
+                  'lights': 37, 'blinds': 38}
 
     def __init__(self, root, classes, d_type, t_type, transform=None, quantization_scheme=None,
                  augmentation=None, download=False, save_unquantized=False):
@@ -93,7 +94,7 @@ class KWS:
             self.data_file = 'unquantized.pt'
 
         if download:
-            self.__download()
+            self._download()
 
         self.data, self.targets, self.data_type = torch.load(os.path.join(
             self.processed_folder, self.data_file))
@@ -151,24 +152,24 @@ class KWS:
                           'Using defaults: [Min: 0.8, Max: 1.3]')
                     self.augmentation['strech'] = {'min': 0.8, 'max': 1.3}
 
-    def __download(self):
+    def _download(self):
 
-        if self.__check_exists():
+        if self._check_exists():
             return
 
-        self.__makedir_exist_ok(self.raw_folder)
-        self.__makedir_exist_ok(self.processed_folder)
+        self._makedir_exist_ok(self.raw_folder)
+        self._makedir_exist_ok(self.processed_folder)
 
         filename = self.url.rpartition('/')[2]
         self.__download_and_extract_archive(self.url, download_root=self.raw_folder,
                                             filename=filename)
 
-        self.__gen_datasets()
+        self._gen_datasets()
 
-    def __check_exists(self):
+    def _check_exists(self):
         return os.path.exists(os.path.join(self.processed_folder, self.data_file))
 
-    def __makedir_exist_ok(self, dirpath):  # pylint: disable=no-self-use
+    def _makedir_exist_ok(self, dirpath):  # pylint: disable=no-self-use
         try:
             os.makedirs(dirpath)
         except OSError as e:
@@ -383,7 +384,7 @@ class KWS:
             q_data = np.clip(q_data, 0, max_val)
         return np.uint8(q_data)
 
-    def __gen_datasets(self, exp_len=16384, row_len=128, overlap_ratio=0):
+    def _gen_datasets(self, exp_len=16384, row_len=128, overlap_ratio=0):
         print('Generating dataset from raw data samples for the first time. ')
         print('This process will take significant time (~60 minutes)...')
         with warnings.catch_warnings():
@@ -498,6 +499,21 @@ class KWS_20(KWS):
     def __str__(self):
         return self.__class__.__name__
 
+class KWS_DASH(KWS):
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def _download(self):
+
+        if self._check_exists():
+            return
+
+        self._makedir_exist_ok(self.raw_folder)
+        self._makedir_exist_ok(self.processed_folder)
+
+        self._gen_datasets()
+
 
 def KWS_get_datasets(data, load_train=True, load_test=True, num_classes=6):
     """
@@ -521,7 +537,7 @@ def KWS_get_datasets(data, load_train=True, load_test=True, num_classes=6):
         ai8x.normalize(args=args)
     ])
 
-    if num_classes in (6, 20):
+    if num_classes in (6, 8, 20):
         classes = next((e for _, e in enumerate(datasets)
                         if len(e['output']) - 1 == num_classes))['output'][:-1]
     else:
@@ -570,6 +586,24 @@ def KWS_20_get_datasets(data, load_train=True, load_test=True):
     """
     return KWS_get_datasets(data, load_train, load_test, num_classes=20)
 
+
+def KWS_dash_get_datasets(data, load_train=True, load_test=True):
+    """
+    Load the folded 1D version of SpeechCom dataset for 20 classes
+
+    The dataset is loaded from the archive file, so the file is required for this version.
+
+    The dataset originally includes 35 keywords. A dataset is formed with 21 classes which includes
+    20 of the original keywords and the rest of the dataset is used to form the last class, i.e.,
+    class of the others.
+    The dataset is split into training+validation and test sets. 90:10 training+validation:test
+    split is used by default.
+
+    Data is augmented to 3x duplicate data by random stretch/shift and randomly adding noise where
+    the stretching coefficient, shift amount and noise variance are randomly selected between
+    0.8 and 1.3, -0.1 and 0.1, 0 and 1, respectively.
+    """
+    return KWS_get_datasets(data, load_train, load_test, num_classes=8)
 
 def KWS_get_unquantized_datasets(data, load_train=True, load_test=True, num_classes=6):
     """
@@ -620,6 +654,44 @@ def KWS_35_get_unquantized_datasets(data, load_train=True, load_test=True):
     return KWS_get_unquantized_datasets(data, load_train, load_test, num_classes=35)
 
 
+
+def KWS_DASH_get_datasets(data, load_train=True, load_test=True):
+    """
+    Load the folded 1D version of unquantized SpeechCom dataset for 35 classes.
+    """
+    (data_dir, args) = data
+
+    transform = transforms.Compose([
+        ai8x.normalize(args=args)
+    ])
+
+    for ds in datasets:
+        if ds['name'] == 'KWS_DASH':
+            classes = ds['output'][:-1]
+
+    augmentation = {'aug_num': 2}
+    quantization_scheme = {'compand': False, 'mu': 10}
+
+    if load_train:
+        train_dataset = KWS_DASH(root=data_dir, classes=classes, d_type='train',
+                            transform=transform, t_type='keyword',
+                            quantization_scheme=quantization_scheme,
+                            augmentation=augmentation, download=True)
+    else:
+        train_dataset = None
+
+    if load_test:
+        test_dataset = KWS_DASH(root=data_dir, classes=classes, d_type='test',
+                           transform=transform, t_type='keyword',
+                           quantization_scheme=quantization_scheme,
+                           augmentation=augmentation, download=True)
+
+    else:
+        test_dataset = None
+
+    return train_dataset, test_dataset
+
+
 datasets = [
     {
         'name': 'KWS',  # 6 keywords
@@ -649,5 +721,12 @@ datasets = [
         'weight': (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
         'loader': KWS_35_get_unquantized_datasets,
+    },
+    {
+        'name': 'KWS_DASH',  # 8 keywords
+        'input': (128, 128),
+        'output': ('up', 'down', 'dash', 'on', 'off', 'energy', 'lights', 'blinds', 'UNKNOWN'),
+        'weight': (1, 1, 1, 1, 1, 1, 1, 1, 0.14),
+        'loader': KWS_DASH_get_datasets,
     },
 ]

@@ -1,6 +1,8 @@
 *.map
 *.mem
 *.prof
+*.log
+.ipynb_checkpoints
 /.mypy_cache/
 /.vscode/
 **/build/
