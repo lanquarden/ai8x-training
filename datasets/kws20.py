@@ -703,10 +703,10 @@ def KWS_DASH_get_datasets(data, load_train=True, load_test=True):
     """
     Load the folded 1D version of unquantized SpeechCom dataset for 35 classes.
     """
-    (data_dir, args) = data
+    (data_dir, act_mode_8bit) = data
 
     transform = transforms.Compose([
-        ai8x.normalize(args=args)
+        ai8x.normalize(act_mode_8bit=act_mode_8bit)
     ])
 
     for ds in datasets:
