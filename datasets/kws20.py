@@ -67,14 +67,48 @@ class KWS:
     url = 'http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz'
     fs = 16000
 
-    class_dict = {'backward': 0, 'bed': 1, 'bird': 2, 'cat': 3, 'dog': 4, 'down': 5,
-                  'eight': 6, 'five': 7, 'follow': 8, 'forward': 9, 'four': 10, 'go': 11,
-                  'happy': 12, 'house': 13, 'learn': 14, 'left': 15, 'marvin': 16, 'nine': 17,
-                  'no': 18, 'off': 19, 'on': 20, 'one': 21, 'right': 22, 'seven': 23,
-                  'sheila': 24, 'six': 25, 'stop': 26, 'three': 27, 'tree': 28, 'two': 29,
-                  'up': 30, 'visual': 31, 'wow': 32, 'yes': 33, 'zero': 34, 'dash': 35, 'energy': 36, 
-                  'lights': 37, 'blinds': 38}
-
+    class_dict = {
+        "backward": 0,
+        "bed": 1,
+        "bird": 2,
+        "blinds": 3,
+        "cat": 4,
+        "dash": 5,
+        "dog": 6,
+        "down": 7,
+        "eight": 8,
+        "energy": 9,
+        "five": 10,
+        "follow": 11,
+        "forward": 12,
+        "four": 13,
+        "go": 14,
+        "happy": 15,
+        "house": 16,
+        "learn": 17,
+        "left": 18,
+        "lights": 19,
+        "marvin": 20,
+        "nine": 21,
+        "no": 22,
+        "off": 23,
+        "on": 24,
+        "one": 25,
+        "right": 26,
+        "seven": 27,
+        "sheila": 28,
+        "six": 29,
+        "stop": 30,
+        "three": 31,
+        "tree": 32,
+        "two": 33,
+        "up": 34,
+        "visual": 35,
+        "wow": 36,
+        "yes": 37,
+        "zero": 38
+    }
+    
     def __init__(self, root, classes, d_type, t_type, transform=None, quantization_scheme=None,
                  augmentation=None, download=False, save_unquantized=False):
 
@@ -501,6 +535,16 @@ class KWS_20(KWS):
 
 class KWS_DASH(KWS):
 
+    class_dict = {
+        "blinds": 0,
+        "dash": 1,
+        "down": 2,
+        "energy": 3,
+        "lights": 4,
+        "off": 5,
+        "on": 6,
+        "up": 7,
+    }
     def __str__(self):
         return self.__class__.__name__
 
@@ -667,7 +711,7 @@ def KWS_DASH_get_datasets(data, load_train=True, load_test=True):
 
     for ds in datasets:
         if ds['name'] == 'KWS_DASH':
-            classes = ds['output'][:-1]
+            classes = ds['output']
 
     augmentation = {'aug_num': 2}
     quantization_scheme = {'compand': False, 'mu': 10}
@@ -725,8 +769,8 @@ datasets = [
     {
         'name': 'KWS_DASH',  # 8 keywords
         'input': (128, 128),
-        'output': ('up', 'down', 'dash', 'on', 'off', 'energy', 'lights', 'blinds', 'UNKNOWN'),
-        'weight': (1, 1, 1, 1, 1, 1, 1, 1, 0.14),
+        'output': ('blinds', 'dash', 'down', 'energy', 'lights', 'off', 'on', 'up'),
+        'weight': (1, 1, 0.01, 1, 1, 0.01, 0.01, 0.01),
         'loader': KWS_DASH_get_datasets,
     },
 ]
